@@ -27,7 +27,7 @@ namespace WebApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.AddDbContext<DataContext>(x => x.UseInMemoryDatabase("TestDb"));
+            services.AddDbContext<DataContext>(options => options.UseNpgsql(Configuration.GetConnectionString("BlogAppContext")));
             services.AddControllers();
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
