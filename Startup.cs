@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System;
+using Newtonsoft.Json;
 
 namespace WebApi
 {
@@ -30,6 +31,8 @@ namespace WebApi
             services.AddDbContext<DataContext>(options => options.UseNpgsql(Configuration.GetConnectionString("BlogAppContext")));
             services.AddControllers();
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            services.AddMvc(option => option.EnableEndpointRouting = false)
+                .AddNewtonsoftJson(opt => opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
 
             // configure strongly typed settings objects
             var appSettingsSection = Configuration.GetSection("AppSettings");
