@@ -9,6 +9,15 @@ using WebApi.Helpers;
 using WebApi.Models;
 using WebApi.Entities;
 using WebApi.Models.Users;
+using AutoMapper;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Options;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using WebApi.Services;
+using Microsoft.Extensions.Logging;
 
 namespace WebApi.Controllers
 {
@@ -24,6 +33,7 @@ namespace WebApi.Controllers
     }
 
     // GET: api/Posts
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<User>>> GetPost()
     {
@@ -31,17 +41,19 @@ namespace WebApi.Controllers
     }
 
     // GET: api/Posts/5
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<ActionResult<Post>> GetPost(long id)
 
     {
-      Console.WriteLine("Welcome to the C# Station Tutorial!");
+      // Console.WriteLine("Welcome to the C# Station Tutorial!");
       // Console.ReadLine();
 
       try
       {
         var post = await _context.Posts.FindAsync(id);
         post.User = await _context.Users.FindAsync(post.UserID);
+        Console.WriteLine(post.User.FirstName);
         post.User.PasswordHash = null;
         post.User.PasswordSalt = null;
         // Console.WriteLine(post.User.Username);
@@ -68,7 +80,7 @@ namespace WebApi.Controllers
     // To protect from overposting attacks, please enable the specific properties you want to bind to, for
     // more details see https://aka.ms/RazorPagesCRUD.
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutPost(long id, Post post)
+    public async Task<ActionResult<Post>> PutPost(long id, Post post)
     {
       if (id != post.Id)
       {
@@ -76,24 +88,12 @@ namespace WebApi.Controllers
       }
 
       _context.Entry(post).State = EntityState.Modified;
+       await _context.SaveChangesAsync();
 
-      try
-      {
-        await _context.SaveChangesAsync();
-      }
-      catch (DbUpdateConcurrencyException)
-      {
-        if (!PostExists(id))
-        {
-          return NotFound();
-        }
-        else
-        {
-          throw;
-        }
-      }
+      var postInfo = await PostHelper.getPostInfo(_context, id);
 
-      return NoContent();
+      return postInfo != null ? postInfo : NotFound();
+
     }
 
     // POST: api/Posts

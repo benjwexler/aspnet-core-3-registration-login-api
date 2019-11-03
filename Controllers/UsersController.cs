@@ -15,6 +15,7 @@ using WebApi.Models.Users;
 using WebApi.Models;
 using Microsoft.Extensions.Logging;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebApi.Controllers
 {
@@ -76,7 +77,7 @@ namespace WebApi.Controllers
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public IActionResult Register([FromBody]RegisterModel model)
+    public async Task<ActionResult> Register([FromBody]RegisterModel model)
     {
       // map model to entity
       var user = _mapper.Map<User>(model);
@@ -85,7 +86,17 @@ namespace WebApi.Controllers
       {
         // create user
         _userService.Create(user, model.Password);
-        return Ok();
+        var _user = _userService.Authenticate(model.Username, model.Password);
+        // Console.Write(_user);
+         return Ok(new
+      {
+        Id = _user.Id,
+        Username = _user.Username,
+        FirstName = _user.FirstName,
+        LastName = _user.LastName,
+        Status = "Ok",
+      });
+        // return Ok("OK");
       }
       catch (AppException ex)
       {
@@ -102,6 +113,7 @@ namespace WebApi.Controllers
       return Ok(model);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public IActionResult GetById(int id)
     {
