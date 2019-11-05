@@ -32,12 +32,24 @@ namespace WebApi.Controllers
       _context = context;
     }
 
-    // GET: api/Posts
+    // // GET: api/Posts
+    // [AllowAnonymous]
+    // [HttpGet]
+    // public async Task<ActionResult<IEnumerable<User>>> GetPost()
+    // {
+    //   return await _context.Users.Include(p => p.Posts).ToListAsync();
+    // }
+
     [AllowAnonymous]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetPost()
+    public async Task<ActionResult<IEnumerable<Post>>> GetPost()
     {
-      return await _context.Users.Include(p => p.Posts).ToListAsync();
+      var posts = await _context.Posts.Include(p => p.User).ToListAsync();
+       foreach (var post in posts)
+      {
+        post.User = post.User.WithoutPassword();
+      }
+      return posts;
     }
 
     // GET: api/Posts/5
