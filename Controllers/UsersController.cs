@@ -16,6 +16,7 @@ using WebApi.Models;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace WebApi.Controllers
 {
@@ -115,11 +116,12 @@ namespace WebApi.Controllers
 
     [AllowAnonymous]
     [HttpGet("{id}")]
-    public IActionResult GetById(int id)
+    public IActionResult GetById(int id, int offset = 0, int limit = 2)
     {
       var user = _userService.GetById(id);
       var model = _mapper.Map<UserModel>(user);
       var postz = _context.Posts.Where(p => p.UserID == id);
+      postz = postz.OrderByDescending(post => post.UpdatedAt).Skip(offset).Take(limit);
       foreach (var post in postz)
       {
         post.User.PasswordHash = null;

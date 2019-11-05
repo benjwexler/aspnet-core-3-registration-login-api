@@ -1,4 +1,5 @@
 using WebApi.Entities;
+using System;
 
 namespace WebApi.Models
 {
@@ -10,6 +11,7 @@ namespace WebApi.Models
         public int UserID { get; set; }
 
         public virtual User User { get; set; }
+        public DateTime UpdatedAt { get; set; }
         
     }
 }
