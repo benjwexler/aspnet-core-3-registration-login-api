@@ -42,9 +42,9 @@ namespace WebApi.Controllers
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Post>>> GetPost()
+    public async Task<ActionResult<IEnumerable<Post>>> GetPost(int offset = 0, int limit = 10)
     {
-      var posts = await _context.Posts.Include(p => p.User).ToListAsync();
+      var posts = await _context.Posts.OrderByDescending(post => post.UpdatedAt).Skip(offset).Take(limit).Include(p => p.User).ToListAsync();
        foreach (var post in posts)
       {
         post.User = post.User.WithoutPassword();
@@ -58,18 +58,13 @@ namespace WebApi.Controllers
     public async Task<ActionResult<Post>> GetPost(long id)
 
     {
-      // Console.WriteLine("Welcome to the C# Station Tutorial!");
-      // Console.ReadLine();
 
       try
       {
         var post = await _context.Posts.FindAsync(id);
         post.User = await _context.Users.FindAsync(post.UserID);
-        Console.WriteLine(post.User.FirstName);
         post.User.PasswordHash = null;
         post.User.PasswordSalt = null;
-        // Console.WriteLine(post.User.Username);
-        // Console.ReadLine();
         if (post == null)
         {
           return NotFound();
