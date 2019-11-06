@@ -32,12 +32,24 @@ namespace WebApi.Controllers
       _context = context;
     }
 
-    // GET: api/Posts
+    // // GET: api/Posts
+    // [AllowAnonymous]
+    // [HttpGet]
+    // public async Task<ActionResult<IEnumerable<User>>> GetPost()
+    // {
+    //   return await _context.Users.Include(p => p.Posts).ToListAsync();
+    // }
+
     [AllowAnonymous]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetPost()
+    public async Task<ActionResult<IEnumerable<Post>>> GetPost(int offset = 0, int limit = 10)
     {
-      return await _context.Users.Include(p => p.Posts).ToListAsync();
+      var posts = await _context.Posts.OrderByDescending(post => post.UpdatedAt).Skip(offset).Take(limit).Include(p => p.User).ToListAsync();
+       foreach (var post in posts)
+      {
+        post.User = post.User.WithoutPassword();
+      }
+      return posts;
     }
 
     // GET: api/Posts/5
@@ -46,18 +58,13 @@ namespace WebApi.Controllers
     public async Task<ActionResult<Post>> GetPost(long id)
 
     {
-      // Console.WriteLine("Welcome to the C# Station Tutorial!");
-      // Console.ReadLine();
 
       try
       {
         var post = await _context.Posts.FindAsync(id);
         post.User = await _context.Users.FindAsync(post.UserID);
-        Console.WriteLine(post.User.FirstName);
         post.User.PasswordHash = null;
         post.User.PasswordSalt = null;
-        // Console.WriteLine(post.User.Username);
-        // Console.ReadLine();
         if (post == null)
         {
           return NotFound();
