@@ -45,7 +45,7 @@ namespace WebApi.Controllers
     public async Task<ActionResult<IEnumerable<Post>>> GetPost(int offset = 0, int limit = 10)
     {
       var posts = await _context.Posts.OrderByDescending(post => post.UpdatedAt).Skip(offset).Take(limit).Include(p => p.User).ToListAsync();
-       foreach (var post in posts)
+      foreach (var post in posts)
       {
         post.User = post.User.WithoutPassword();
       }
@@ -89,13 +89,18 @@ namespace WebApi.Controllers
     [HttpPut("{id}")]
     public async Task<ActionResult<Post>> PutPost(long id, Post post)
     {
+
       if (id != post.Id)
       {
         return BadRequest();
       }
-
+      _context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+      var postBeforeUpdate = await _context.Posts.FindAsync(id);
+      var currentUserId = int.Parse(User.Identity.Name);
+      if (postBeforeUpdate.UserID != currentUserId || postBeforeUpdate.UserID != post.UserID)
+        return Forbid();
       _context.Entry(post).State = EntityState.Modified;
-       await _context.SaveChangesAsync();
+      await _context.SaveChangesAsync();
 
       var postInfo = await PostHelper.getPostInfo(_context, id);
 
@@ -109,6 +114,10 @@ namespace WebApi.Controllers
     [HttpPost]
     public async Task<ActionResult<Post>> PostPost(Post post)
     {
+      var currentUserId = int.Parse(User.Identity.Name);
+      if (post.UserID != currentUserId)
+        return Forbid();
+
       _context.Posts.Add(post);
       await _context.SaveChangesAsync();
 
@@ -124,6 +133,10 @@ namespace WebApi.Controllers
       {
         return NotFound();
       }
+
+      var currentUserId = int.Parse(User.Identity.Name);
+      if (post.UserID != currentUserId)
+        return Forbid();
 
       _context.Posts.Remove(post);
       await _context.SaveChangesAsync();

@@ -16,7 +16,7 @@ using WebApi.Models;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Linq;
+
 
 namespace WebApi.Controllers
 {
@@ -51,29 +51,7 @@ namespace WebApi.Controllers
       if (user == null)
         return BadRequest(new { message = "Username or password is incorrect" });
 
-      var tokenHandler = new JwtSecurityTokenHandler();
-      var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
-      var tokenDescriptor = new SecurityTokenDescriptor
-      {
-        Subject = new ClaimsIdentity(new Claim[]
-          {
-                    new Claim(ClaimTypes.Name, user.Id.ToString())
-          }),
-        Expires = DateTime.UtcNow.AddDays(7),
-        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-      };
-      var token = tokenHandler.CreateToken(tokenDescriptor);
-      var tokenString = tokenHandler.WriteToken(token);
-
-      // return basic user info and authentication token
-      return Ok(new
-      {
-        Id = user.Id,
-        Username = user.Username,
-        FirstName = user.FirstName,
-        LastName = user.LastName,
-        Token = tokenString
-      });
+      return Ok(user);
     }
 
     [AllowAnonymous]
@@ -88,16 +66,14 @@ namespace WebApi.Controllers
         // create user
         _userService.Create(user, model.Password);
         var _user = _userService.Authenticate(model.Username, model.Password);
-        // Console.Write(_user);
-         return Ok(new
-      {
-        Id = _user.Id,
-        Username = _user.Username,
-        FirstName = _user.FirstName,
-        LastName = _user.LastName,
-        Status = "Ok",
-      });
-        // return Ok("OK");
+        return Ok(new
+        {
+          Id = _user.Id,
+          Username = _user.Username,
+          FirstName = _user.FirstName,
+          LastName = _user.LastName,
+          Status = "Ok",
+        });
       }
       catch (AppException ex)
       {
@@ -118,6 +94,7 @@ namespace WebApi.Controllers
     [HttpGet("{id}")]
     public IActionResult GetById(int id, int offset = 0, int limit = 2)
     {
+      
       var user = _userService.GetById(id);
       var model = _mapper.Map<UserModel>(user);
       var postz = _context.Posts.Where(p => p.UserID == id);
@@ -132,20 +109,13 @@ namespace WebApi.Controllers
       // model.Posts = _context.Posts.Where(p => p.UserID == id);
       return Ok(model);
     }
-    [AllowAnonymous]
-    [HttpGet("test/blah")]
-    public IActionResult Test(int id)
-    {
-
-      var user = _userService.GetById(1);
-      // var model = _mapper.Map<UserModel>(user);
-      return Ok(user);
-      return Ok("Blah");
-    }
 
     [HttpPut("{id}")]
     public IActionResult Update(int id, [FromBody]UpdateModel model)
     {
+      var currentUserId = int.Parse(User.Identity.Name);
+      if (id != currentUserId)
+        return Forbid();
       // map model to entity and set id
       var user = _mapper.Map<User>(model);
       user.Id = id;
@@ -166,6 +136,10 @@ namespace WebApi.Controllers
     [HttpDelete("{id}")]
     public IActionResult Delete(int id)
     {
+      var currentUserId = int.Parse(User.Identity.Name);
+      if (id != currentUserId)
+        return Forbid();
+
       _userService.Delete(id);
       return Ok();
     }
