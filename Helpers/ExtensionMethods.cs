@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using WebApi.Entities;
+using System;
+using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Helpers
 {
@@ -21,5 +23,12 @@ namespace WebApi.Helpers
             user.PasswordSalt = null;
             return user;
         }
+
+      //   public partial Boolean OnlyAllowIfIdEqualsCurrentUser()
+      //    var currentUserId = int.Parse(User.Identity.Name);
+      // if (id != int.Parse(currentUserId))
+      //   return Forbid();
     }
+
+
 }

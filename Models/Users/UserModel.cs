@@ -8,6 +8,7 @@ namespace WebApi.Models.Users
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Username { get; set; }
+        public string Token { get; set; }
 
         // public virtual IEnumerable<Post> Posts { get; set; }
         public virtual IEnumerable<Post> Posts { get; set; }

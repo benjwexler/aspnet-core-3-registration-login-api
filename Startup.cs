@@ -54,8 +54,8 @@ namespace WebApi
                     {
                         var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
                         var userId = int.Parse(context.Principal.Identity.Name);
-                        Console.WriteLine("HELLo");
-                        Console.WriteLine(context.Principal.Identity);
+                        // Console.WriteLine("HELLo");
+                        // Console.WriteLine(context.Principal.Identity);
                         var user = userService.GetById(userId);
                         if (user == null)
                         {
@@ -75,6 +75,19 @@ namespace WebApi
                     ValidateAudience = false
                 };
             });
+            // .AddJwtBearer(x =>
+            // {
+            //     x.RequireHttpsMetadata = false;
+            //     x.SaveToken = true;
+            //     x.TokenValidationParameters = new TokenValidationParameters
+            //     {
+            //         ValidateIssuerSigningKey = true,
+            //         IssuerSigningKey = new SymmetricSecurityKey(key),
+            //         ValidateIssuer = false,
+            //         ValidateAudience = false
+            //     };
+            // });
+            
 
             // configure DI for application services
             services.AddScoped<IUserService, UserService>();
