@@ -114,6 +114,8 @@ namespace WebApi.Controllers
     [HttpPost]
     public async Task<ActionResult<Post>> PostPost(Post post)
     {
+      Console.WriteLine("User.Identity.Name");
+      Console.WriteLine(User.Identity.Name);
       var currentUserId = int.Parse(User.Identity.Name);
       if (post.UserID != currentUserId)
         return Forbid();

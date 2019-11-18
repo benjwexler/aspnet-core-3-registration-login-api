@@ -16,10 +16,12 @@ namespace WebApi.Services
 {
   public interface IUserService
   {
+    User getFacebookUser(string username);
+    UserModel authenticateFacebookUser(string username);
     UserModel Authenticate(string username, string password);
     IEnumerable<User> GetAll();
     User GetById(int id);
-    User Create(User user, string password);
+    User Create(User user, string password, bool allowNullPassword = false);
     void Update(User user, string password = null);
     void Delete(int id);
   }
@@ -35,14 +37,44 @@ namespace WebApi.Services
       _appSettings = appSettings.Value;
     }
 
-    //  private readonly AppSettings _appSettings;
+    public User getFacebookUser(string username)
+    {
+      var user = _context.Users.SingleOrDefault(x => x.Username == username);
+      if (user == null)
+        return null;
+      return user;
+    }
 
-    //     public UserService(IOptions<AppSettings> appSettings)
-    //     {
-    //         _appSettings = appSettings.Value;
-    //     }
+    public UserModel authenticateFacebookUser(string username)
+    {
+      var user = _context.Users.SingleOrDefault(x => x.Username == username);
+      if (user == null)
+        return null;
 
+      // authentication successful so generate jwt token
+      var tokenHandler = new JwtSecurityTokenHandler();
+      var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
+      var tokenDescriptor = new SecurityTokenDescriptor
+      {
+        Subject = new ClaimsIdentity(new Claim[]
+          {
+                    new Claim(ClaimTypes.Name, user.Id.ToString()),
+          }),
+        Expires = DateTime.UtcNow.AddDays(7),
+        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+      };
+      var token = tokenHandler.CreateToken(tokenDescriptor);
 
+      var _user = new UserModel
+      {
+        Id = user.Id,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        Username = user.Username,
+        Token = tokenHandler.WriteToken(token),
+      };
+      return _user;
+    }
     public UserModel Authenticate(string username, string password)
     {
       if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
@@ -59,15 +91,6 @@ namespace WebApi.Services
       if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
         return null;
 
-      //   var _user = new UserModel {
-      //     Id = user.Id,
-      //     FirstName = user.FirstName,
-      //     LastName = user.LastName,
-      //     Username = user.Username,
-      // };
-
-      // authentication successful
-
       // authentication successful so generate jwt token
       var tokenHandler = new JwtSecurityTokenHandler();
       var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
@@ -81,8 +104,6 @@ namespace WebApi.Services
         SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
       };
       var token = tokenHandler.CreateToken(tokenDescriptor);
-      // _user.Token = tokenHandler.WriteToken(token);
-
 
       var _user = new UserModel
       {
@@ -92,9 +113,6 @@ namespace WebApi.Services
         Username = user.Username,
         Token = tokenHandler.WriteToken(token),
       };
-
-      Console.WriteLine(_user.Token);
-
       return _user;
     }
 
@@ -108,10 +126,10 @@ namespace WebApi.Services
       return _context.Users.Find(id);
     }
 
-    public User Create(User user, string password)
+    public User Create(User user, string password, bool allowNullPassword)
     {
       // validation
-      if (string.IsNullOrWhiteSpace(password))
+      if (string.IsNullOrWhiteSpace(password) && !allowNullPassword)
         throw new AppException("Password is required");
 
       if (_context.Users.Any(x => x.Username == user.Username))
@@ -181,8 +199,14 @@ namespace WebApi.Services
 
     private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
     {
-      if (password == null) throw new ArgumentNullException("password");
-      if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Value cannot be empty or whitespace only string.", "password");
+      // if (password == null) throw new ArgumentNullException("password");
+      if (password == null)
+      {
+        passwordSalt = null;
+        passwordHash = null;
+        return;
+      }
+      // if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Value cannot be empty or whitespace only string.", "password");
 
       using (var hmac = new System.Security.Cryptography.HMACSHA512())
       {
