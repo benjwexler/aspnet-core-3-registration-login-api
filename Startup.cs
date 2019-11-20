@@ -12,104 +12,105 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System;
 using Newtonsoft.Json;
+// using WebApi.Models.Configuration;
 
 namespace WebApi
 {
   public class Startup
+  {
+    public Startup(IWebHostEnvironment env)
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
+      var builder = new ConfigurationBuilder()
+  .SetBasePath(env.ContentRootPath)
+  .AddJsonFile("appsettings.json",
+               optional: false,
+               reloadOnChange: true)
+  .AddEnvironmentVariables();
+      builder.AddUserSecrets<Startup>();
 
-        public IConfiguration Configuration { get; }
-
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
-        {
-            services.AddCors();
-            services.AddDbContext<DataContext>(options => options.UseNpgsql(Configuration.GetConnectionString("BlogAppContext")));
-            services.AddControllers();
-            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-            services.AddMvc(option => option.EnableEndpointRouting = false)
-                .AddNewtonsoftJson(opt => opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
-
-            // configure strongly typed settings objects
-            var appSettingsSection = Configuration.GetSection("AppSettings");
-            services.Configure<AppSettings>(appSettingsSection);
-
-            // configure jwt authentication
-            var appSettings = appSettingsSection.Get<AppSettings>();
-            var key = Encoding.ASCII.GetBytes(appSettings.Secret);
-            services.AddAuthentication(x =>
-            {
-                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(x =>
-            {
-                x.Events = new JwtBearerEvents
-                {
-                    OnTokenValidated = context =>
-                    {
-                        var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
-                        var userId = int.Parse(context.Principal.Identity.Name);
-                        // Console.WriteLine("HELLo");
-                        // Console.WriteLine(context.Principal.Identity);
-                        var user = userService.GetById(userId);
-                        if (user == null)
-                        {
-                            // return unauthorized if user no longer exists
-                            context.Fail("Unauthorized");
-                        }
-                        return Task.CompletedTask;
-                    }
-                };
-                x.RequireHttpsMetadata = false;
-                x.SaveToken = true;
-                x.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false
-                };
-            });
-            // .AddJwtBearer(x =>
-            // {
-            //     x.RequireHttpsMetadata = false;
-            //     x.SaveToken = true;
-            //     x.TokenValidationParameters = new TokenValidationParameters
-            //     {
-            //         ValidateIssuerSigningKey = true,
-            //         IssuerSigningKey = new SymmetricSecurityKey(key),
-            //         ValidateIssuer = false,
-            //         ValidateAudience = false
-            //     };
-            // });
-            
-
-            // configure DI for application services
-            services.AddScoped<IUserService, UserService>();
-        }
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-        {
-            app.UseRouting();
-
-            // global cors policy
-            app.UseCors(x => x
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader());
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-            
-            app.UseEndpoints(endpoints => {
-                endpoints.MapControllers();
-            });
-        }
+      Configuration = builder.Build();
     }
+
+    public IConfiguration Configuration { get; }
+
+    // This method gets called by the runtime. Use this method to add services to the container.
+    public void ConfigureServices(IServiceCollection services)
+    {
+
+      services.AddCors();
+      services.AddDbContext<DataContext>(options => options.UseNpgsql(Configuration.GetConnectionString("BlogAppContext")));
+      services.AddControllers();
+      services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+      services.AddMvc(option => option.EnableEndpointRouting = false)
+          .AddNewtonsoftJson(opt => opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
+
+      var facebookSection = Configuration.GetSection("Facebook");
+      services.Configure<Facebook>(facebookSection);
+      var facebookSettings = facebookSection.Get<Facebook>();
+      // configure strongly typed settings objects
+      var appSettingsSection = Configuration.GetSection("AppSettings");
+      services.Configure<AppSettings>(appSettingsSection);
+
+      // configure jwt authentication
+      var appSettings = appSettingsSection.Get<AppSettings>();
+      var key = Encoding.ASCII.GetBytes(appSettings.Secret);
+      services.AddAuthentication(x =>
+      {
+        x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+      })
+      .AddJwtBearer(x =>
+      {
+        x.Events = new JwtBearerEvents
+        {
+          OnTokenValidated = context =>
+                {
+                  var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
+                  var userId = int.Parse(context.Principal.Identity.Name);
+                  var user = userService.GetById(userId);
+                  if (user == null)
+                  {
+                    // return unauthorized if user no longer exists
+                    context.Fail("Unauthorized");
+                  }
+                  return Task.CompletedTask;
+                }
+        };
+        x.RequireHttpsMetadata = false;
+        x.SaveToken = true;
+        x.TokenValidationParameters = new TokenValidationParameters
+        {
+          ValidateIssuerSigningKey = true,
+          IssuerSigningKey = new SymmetricSecurityKey(key),
+          ValidateIssuer = false,
+          ValidateAudience = false
+        };
+      });
+
+
+      // configure DI for application services
+      services.AddScoped<IUserService, UserService>();
+    }
+
+    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+      app.UseRouting();
+
+
+      // global cors policy
+      app.UseCors(x => x
+          .AllowAnyOrigin()
+          .AllowAnyMethod()
+          .AllowAnyHeader());
+
+      app.UseAuthentication();
+      app.UseAuthorization();
+
+      app.UseEndpoints(endpoints =>
+      {
+        endpoints.MapControllers();
+      });
+    }
+  }
 }

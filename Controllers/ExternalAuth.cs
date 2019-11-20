@@ -1,15 +1,11 @@
 
-
-using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using WebApi.Helpers;
 using WebApi.Models;
-using WebApi.Models.Users;
 using WebApi.Entities;
 using WebApi.Services;
 
@@ -21,19 +17,18 @@ namespace WebApi.Controllers
   {
     private readonly DataContext _context;
     private IUserService _userService;
-    // private readonly UserManager<AppUser> _userManager;
-    // private readonly FacebookAuthSettings _fbAuthSettings;
-    // private readonly IJwtFactory _jwtFactory;
-    // private readonly JwtIssuerOptions _jwtOptions;
+    private readonly Facebook _facebook;
     private static readonly HttpClient Client = new HttpClient();
 
     public ExternalAuthController(
       DataContext appDbContext,
-      IUserService userService
+      IUserService userService,
+      IOptions<Facebook> facebook
     )
     {
       _userService = userService;
       _context = appDbContext;
+      _facebook = facebook.Value;
     }
 
     // POST api/externalauth/facebook
@@ -42,7 +37,7 @@ namespace WebApi.Controllers
     {
       // 1.generate an app access token
       var appId = "2442240719384458";
-      var appSecret = "ecc38bfec80bd85d6f8b7dff9c71329a";
+      var appSecret = _facebook.AppSecret;
       var appAccessTokenResponse = await Client.GetStringAsync($"https://graph.facebook.com/oauth/access_token?client_id={appId}&client_secret={appSecret}&grant_type=client_credentials");
       var appAccessToken = JsonConvert.DeserializeObject<FacebookAppAccessToken>(appAccessTokenResponse);
       // 2. validate the user access token
@@ -60,9 +55,7 @@ namespace WebApi.Controllers
       var userInfo = JsonConvert.DeserializeObject<FacebookUserData>(userInfoResponse);
       var user = _userService.getFacebookUser(userInfo.Email);
       // 4. ready to create the local user account (if necessary) and jwt
-      // var user = await _userManager.FindByEmailAsync(userInfo.Email);
 
-      // if (user == null)
       if (user == null)
       {
         var appUser = new User

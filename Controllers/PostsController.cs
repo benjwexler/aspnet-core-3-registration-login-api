@@ -32,14 +32,6 @@ namespace WebApi.Controllers
       _context = context;
     }
 
-    // // GET: api/Posts
-    // [AllowAnonymous]
-    // [HttpGet]
-    // public async Task<ActionResult<IEnumerable<User>>> GetPost()
-    // {
-    //   return await _context.Users.Include(p => p.Posts).ToListAsync();
-    // }
-
     [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Post>>> GetPost(int offset = 0, int limit = 10)
@@ -58,7 +50,6 @@ namespace WebApi.Controllers
     public async Task<ActionResult<Post>> GetPost(long id)
 
     {
-
       try
       {
         var post = await _context.Posts.FindAsync(id);
